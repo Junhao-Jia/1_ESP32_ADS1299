@@ -5,6 +5,10 @@
 #include <ESPmDNS.h>
 
 #include <ArduinoJson.h>
+
+#include <Wire.h>
+#include "u8g2Display.h"
+
 #define ADS1299_PIN_RESET 25
 #define ADS1299_PIN_DRDY 27    //data-ready output
 
@@ -111,6 +115,10 @@
 #define BOTHCHAN (3)
 byte    regData[24] = {0}; // array is used to mirror register data
 volatile int     boardStat = 0; //
+
+/* u8g2 constructer */
+u8g2Display u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE, /* clock=*/SCL, /* data=*/SDA);  // ESP32 Thing, HW I2C with pin remapping
+
 
 /*
 enum ads1299_command : uint8_t 表示定义的枚举类型 ads1299_command 的底层存储类型为 uint8_t，
@@ -423,6 +431,7 @@ uint8_t digit_from_char(char digit_char)
 void get_system_info()
 {
     Serial.println("IN get_system_info\n");
+    u8g2.u8g2DisplayBottomUp("IN get_system_info");
     DynamicJsonDocument json_document(JSON_BUFFER_SIZE);
     
     JsonObject json_object = json_document.to<JsonObject>();
@@ -440,6 +449,7 @@ void get_system_info()
   
     serializeJson(json_document, json_string);
     Serial.println(json_string);
+    u8g2.u8g2DisplayBottomUp(json_string);
     
     web_server.send(200, "text/json", json_string);
 }
@@ -447,6 +457,7 @@ void get_system_info()
 void get_board_info()
 {
     Serial.println("IN get_board_info\n");
+    u8g2.u8g2DisplayBottomUp("IN get_board_info");
     DynamicJsonDocument json_document(JSON_BUFFER_SIZE);
   
     JsonObject json_object = json_document.to<JsonObject>();
@@ -464,12 +475,15 @@ void get_board_info()
   
     serializeJson(json_document, json_string);
     Serial.println(json_string);
+    u8g2.u8g2DisplayBottomUp(json_string);
     web_server.send(200, "text/json", json_string);
 }
 
 void process_command()
 {    
     Serial.println("IN process_command\n");
+    u8g2.u8g2DisplayBottomUp("IN process_command");
+
     DynamicJsonDocument json_document(JSON_BUFFER_SIZE);
     
     deserializeJson(json_document, web_server.arg(0));
@@ -491,6 +505,7 @@ void process_command()
     if (command[0] == '~')
     {
       Serial.println("command[0]\n");
+      u8g2.u8g2DisplayBottomUp("command[0]");
         uint8_t sampling_rate = digit_from_char(command[1]);
 
         ads1299_register_buffer.config1 &= ~(0b111);
@@ -519,6 +534,7 @@ void process_command()
     else if (command[0] == 'x')
     {
       Serial.println("command[0] == 'x'");
+      u8g2.u8g2DisplayBottomUp("command[0] == 'x'");
        uint8_t channel_index = digit_from_char(command[1]) - 1;
 
        uint8_t channel_power_down = digit_from_char(command[2]);
@@ -561,6 +577,7 @@ void start_streaming()
 {
     streaming_enabled = true;
     Serial.println("start_streaming!");
+    u8g2.u8g2DisplayBottomUp("start_streaming!");
     web_server.send(200);
 }
 
@@ -568,12 +585,14 @@ void stop_streaming()
 {
     streaming_enabled = false;
     Serial.println("stop_streaming!");
+    u8g2.u8g2DisplayBottomUp("stop_streaming!");
     web_server.send(200);
 }
 
 void switch_raw_output()
 {
     Serial.println("switch_raw_output!");
+    u8g2.u8g2DisplayBottomUp("switch_raw_output!");
     web_server.send(200, "text/plain", "Output mode configured to raw");
 }
 
@@ -592,12 +611,14 @@ void get_tcp_config()
     String json_string = "";
     serializeJson(json_document, json_string);
     Serial.println(json_string);
+    u8g2.u8g2DisplayBottomUp(json_string);
     web_server.send(200, "text/json", json_string);
 }
 
 void set_tcp_config()
 {
     Serial.println("IN set_tcp_config\n");
+    u8g2.u8g2DisplayBottomUp("IN set_tcp_config");
     streaming_enabled = false;
     DynamicJsonDocument json_document(JSON_BUFFER_SIZE);
     
@@ -622,6 +643,7 @@ void stop_tcp_connection()
 {
     streaming_enabled = false;
     Serial.println("IN stop_tcp_connection\n");
+    u8g2.u8g2DisplayBottomUp("IN stop_tcp_connection");
     tcp_client.stop();
 
     get_tcp_config();
@@ -630,12 +652,16 @@ void stop_tcp_connection()
 void invalid_request()
 {
     Serial.println("IN invalid_request\n");
+    u8g2.u8g2DisplayBottomUp("IN invalid_request");
     web_server.send(404, "text/plain", "Invalid Request!");
 }
 
 void setup()
 { 
     Serial.begin(115200);
+    /******************************************************************显示屏初始化*******************************************************/
+    u8g2.u8g2Init();
+
     pinMode(ADS1299_PIN_RESET, OUTPUT);
     pinMode(ADS1299_PIN_DRDY, INPUT);
     pinMode(ADS1299_PIN_SS, OUTPUT);
@@ -645,23 +671,30 @@ void setup()
     SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE1));
     delay(500);
     Serial.println("Starting Power up sequence...");
+    u8g2.u8g2DisplayBottomUp("Starting Power up sequence...");
     ads1299_pwr_up_seq();
     delay(1000);
     ads1299_pwr_up_seq();
     delay(1000);
     Serial.println("Sequence completed\n");
+    u8g2.u8g2DisplayBottomUp("Sequence completed");
     SDATAC(ADS1299_PIN_SS);
     delay(500);
     Serial.println("ADS id:");
+    u8g2.u8g2DisplayBottomUp("ADS id:");
     Serial.print(ADS_getDeviceID(BOARD_ADS), HEX); 
+    u8g2.u8g2DisplayBottomUp(u8g2.byteToString(ADS_getDeviceID(BOARD_ADS)));
     Serial.println("");
     Serial.println("Start configure!");
+    u8g2.u8g2DisplayBottomUp("Start configure!");
     //1
     WREG(CONFIG1, 0x96 );
     //2  
     WREG(CONFIG2, 0xC0 | ADS1299_TEST_INT | ADS1299_TESTSIGNAL_PULSE_SLOW);
     Serial.println("CONFIG2 id:");
+    u8g2.u8g2DisplayBottomUp("CONFIG2 id:");
     Serial.print(RREG(CONFIG2, BOARD_ADS), HEX);
+    u8g2.u8g2DisplayBottomUp(u8g2.byteToString(ADS_getDeviceID(RREG(CONFIG2, BOARD_ADS))));
     Serial.println("");
     //3
     WREG(CONFIG3, 0x60|(1 << 7) | (1 << 2) | (1 << 3));
@@ -675,7 +708,9 @@ void setup()
     WREG(CH7SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);
     WREG(CH8SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);
     Serial.println("CH8SET id:");
+    u8g2.u8g2DisplayBottomUp("CH8SET id:");
     Serial.print(RREG(CH8SET, BOARD_ADS), HEX);
+    u8g2.u8g2DisplayBottomUp(u8g2.byteToString(ADS_getDeviceID(RREG(CH8SET, BOARD_ADS))));
     Serial.println("");
     WREG(BIAS_SENSN, 0xFF);
     WREG(BIAS_SENSP, 0xFF);
@@ -689,8 +724,13 @@ void setup()
     RDATAC(ADS1299_PIN_SS);//ads1299_write_byte(ads1299_command_rdatac);
     delayMicroseconds(10);
     Serial.println("configuration completed");
+    u8g2.u8g2DisplayBottomUp("configuration completed");
+    /***********************************************************************显示屏显示*****************************************************************/
+    u8g2.setCursor(0, 15);
+    u8g2.print("WIFI is connecting ...");
+    u8g2.u8g2DisplayBottomUp("WIFI is connecting ...");
     
-    Serial.println("Start WIFI");
+
     WiFi.mode(WIFI_AP);
     WiFi.softAP(SOFT_AP_SSID, SOFT_AP_PASSWORD);
     delay(250); 
@@ -698,6 +738,8 @@ void setup()
     delay(250);
     MDNS.begin("openbci");
     Serial.println("WiFi:tcp_transfer_buffer");
+    u8g2.u8g2DisplayBottomUp("WiFi:tcp_transfer_buffer");
+
     tcp_transfer_buffer = (uint8_t*)malloc(sizeof(openbci_data_buffer));
 
     web_server.on("/all", HTTP_GET, get_system_info);
@@ -715,7 +757,8 @@ void setup()
     web_server.onNotFound(invalid_request); 
     MDNS.addService("http", "tcp", 80);
     web_server.begin();
-    Serial.println("web_server.begin");  
+    Serial.println("web_server.begin"); 
+    u8g2.u8g2DisplayBottomUp("web_server.begin");  
     attachInterrupt(digitalPinToInterrupt(ADS1299_PIN_DRDY), ads1299_drdy_interrupt, FALLING);
     /*----------------------------------------------------------------------------------------------------------------------------------------------------------
     Arduino 中的外部中断配置函数 attachInterrupt(digitalPinToInterrupt(pin),ISR,mode)`包括3个参数:
@@ -739,7 +782,7 @@ void loop()
     {
         uint64_t current_micros = micros();
         Serial.println("loop.begin"); 
-       
+        u8g2.u8g2DisplayBottomUp("loop.begin");  
         size_t tcp_write_size = wifi_latency / get_sample_delay(); //wifi_latency = 0;
 
         int16_t packets_to_write = openbci_data_buffer_tail - openbci_data_buffer_head; //0-0
