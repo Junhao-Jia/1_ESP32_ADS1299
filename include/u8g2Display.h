@@ -7,6 +7,9 @@
 #include <Wire.h>
 #include <U8g2lib.h>
 #include <WiFi.h>
+/* u8g2 constructer */
+//u8g2Display u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE, /* clock=*/SCL, /* data=*/SDA);  // ESP32 Thing, HW I2C with pin remapping
+
 
 class u8g2Display : public U8G2_SSD1306_128X64_NONAME_F_HW_I2C
 {
