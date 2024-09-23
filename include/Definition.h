@@ -4,6 +4,10 @@
 #define ADS1299_PIN_RESET 25
 #define ADS1299_PIN_DRDY 27
 
+//stable版引脚配置
+// #define ADS1299_PIN_RESET 17
+// #define ADS1299_PIN_DRDY 25
+
 #define ADS1299_PIN_SCK 14
 #define ADS1299_PIN_MISO 12
 #define ADS1299_PIN_MOSI 13
