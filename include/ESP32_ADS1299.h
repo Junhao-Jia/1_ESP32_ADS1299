@@ -10,19 +10,19 @@
 #include "Definition.h"
 #include <ArduinoJson.h>
 
-enum ads1299_command : uint8_t
+enum ads1299_command : uint8_t      //ADS1299控制字
 {
-    ads1299_command_start = 0x08,
-    ads1299_command_stop = 0x0A,
+    ads1299_command_start = 0x08,   //启动
+    ads1299_command_stop = 0x0A,    //停止
 
-    ads1299_command_rdatac = 0x10,
-    ads1299_command_sdatac = 0x11,
+    ads1299_command_rdatac = 0x10,    //启用连续读取
+    ads1299_command_sdatac = 0x11,    //停止连续读取
 
-    ads1299_command_rreg = 0x20,
-    ads1299_command_wreg = 0x40
+    ads1299_command_rreg = 0x20,    //读寄存器        
+    ads1299_command_wreg = 0x40     //写寄存器
 };
 
-typedef struct ads1299_register_packet
+typedef struct ads1299_register_packet  //ADS1299的寄存器包，这个数据结构对应各个寄存器地址
 {
     uint8_t id;
 
@@ -32,7 +32,7 @@ typedef struct ads1299_register_packet
 
     uint8_t loff;
 
-    uint8_t chnset[8];
+    uint8_t chnset[8];  //八个通道
     
     uint8_t bias_sensp;
     uint8_t bias_sensn;
@@ -53,7 +53,7 @@ typedef struct ads1299_register_packet
     uint8_t config4;
 } __attribute__ ((packed)) ads1299_register_packet;
 
-typedef struct ads1299_data_packet
+typedef struct ads1299_data_packet  //ADS1299采集到的数据
 {
     uint32_t stat : 24;
 
