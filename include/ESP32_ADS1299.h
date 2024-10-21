@@ -10,6 +10,7 @@
 #include "Definition.h"
 #include <ArduinoJson.h>
 
+
 enum ads1299_command : uint8_t      //ADS1299控制字
 {
     ads1299_command_start = 0x08,   //启动
@@ -133,3 +134,4 @@ void stop_tcp_connection();
 void invalid_request();
 
 #endif 
+

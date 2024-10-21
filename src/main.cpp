@@ -9,14 +9,23 @@
 #include "Definition.h"
 #include "ESP32_ADS1299.h"
 #include "u8g2Display.h"
+#include "playMusic.h"
 
 IPAddress local_ip(192, 168, 4, 1);
 IPAddress network_gateway(192, 168, 4, 1);
 IPAddress subnet_mask(255, 255, 255, 0);
 
+u8g2Display u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE, /* clock=*/SCL, /* data=*/SDA);  // ESP32 Thing, HW I2C with pin remapping
+playMusic myDFPlayer;
+//   u8g2.u8g2Init(); //在setup中说明
+//   u8g2.u8g2DisplayBottomUp("显示第1行");
+//   u8g2.u8g2DisplayBottomUp("显示第2行");
 void setup()
 { 
     Serial.begin(115200);
+
+    myDFPlayer.playMusicInit();
+
     pinMode(ADS1299_PIN_RESET, OUTPUT);
     pinMode(ADS1299_PIN_DRDY, INPUT);
     pinMode(ADS1299_PIN_SS, OUTPUT);
@@ -41,8 +50,8 @@ void setup()
     WREG(CONFIG1, 0x96 ); //110:fMOD /4096 (250 SPS)(sample per second，每秒采样次数)
     //2  
     //关于Test signal，可以通过CONFIG2寄存器配置参数，可以通过CHnSET寄存器MUXn[2:0]选择Channel input
-    WREG(CONFIG2, 0xC0 | ADS1299_TEST_INT | ADS1299_TESTSIGNAL_PULSE_FAST);//(0xC0|0x10|0x01 = 1101 0001)
-    //WREG(CONFIG2,0xD1);
+   //WREG(CONFIG2, 0xC0 | ADS1299_TEST_INT | ADS1299_TESTSIGNAL_PULSE_FAST);//(0xC0|0x10|0x01 = 1101 0001)
+    WREG(CONFIG2,0xD5);
     Serial.println("CONFIG2 id:");
     Serial.print(RREG(CONFIG2, BOARD_ADS), HEX);
     Serial.println("");
@@ -50,15 +59,15 @@ void setup()
     WREG(CONFIG3, 0x60|(1 << 7) | (1 << 2) | (1 << 3));
     //WREG(CONFIG3, 0xec);
     //4
-    //WREG(CH1SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);//(0b01010000 | 0b00000000 | 0b00000000)
-    WREG(CH1SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_TESTSIGNAL);
+    WREG(CH1SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);//(0b01010000 | 0b00000000 | 0b00000000)
+    //WREG(CH1SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_TESTSIGNAL);
     WREG(CH2SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);
     WREG(CH3SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);
     WREG(CH4SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);
     WREG(CH5SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);
     WREG(CH6SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);
-   // WREG(CH7SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);
-    WREG(CH7SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_TESTSIGNAL);
+    WREG(CH7SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);
+   // WREG(CH7SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_TESTSIGNAL);
     WREG(CH8SET, ADS1299_PGA_GAIN12 | ADS1299_INPUT_NORMAL | ADS1299_INPUT_PWR_UP);
     Serial.println("CH8SET id:");
     Serial.print(RREG(CH8SET, BOARD_ADS), HEX);
@@ -111,9 +120,9 @@ uint64_t last_micros = 0;
 void loop()
 {
   
-    if (streaming_enabled == true)
+    if (streaming_enabled == true)//如果使能传输流，则使用tcp传输
     {
-        uint64_t current_micros = micros();
+        uint64_t current_micros = micros();//获取当前微秒
         Serial.println("loop.begin"); 
        
         size_t tcp_write_size = wifi_latency / get_sample_delay();//tcp能够写入的数据长度是wifi延迟➗采样延迟
@@ -123,7 +132,7 @@ void loop()
         if (packets_to_write < 0) 
           packets_to_write += OPENBCI_DATA_BUFFER_SIZE; //#define OPENBCI_DATA_BUFFER_SIZE 50
         
-        if ((last_micros + wifi_latency <= current_micros) || (packets_to_write >= tcp_write_size))
+        if ((last_micros + wifi_latency <= current_micros) || (packets_to_write >= tcp_write_size))//当tcp空间少于要写的包数量或者当前时间超出上一时间+wifi延迟v
         {              
             if (openbci_data_buffer_head + packets_to_write >= OPENBCI_DATA_BUFFER_SIZE)
             { 

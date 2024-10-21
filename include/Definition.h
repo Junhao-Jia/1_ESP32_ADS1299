@@ -110,4 +110,9 @@
 #define NCHAN (2)
 #define BOTHCHAN (3)
 
+//playMusic Definition
+#define FPSerial Serial1
+
+
+
 #endif

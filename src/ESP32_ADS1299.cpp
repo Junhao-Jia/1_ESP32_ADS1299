@@ -170,7 +170,7 @@ void ads1299_pwr_up_seq()
 }
 void IRAM_ATTR ads1299_drdy_interrupt()
 {
-     RDATA();
+     RDATA();//开启读数模式
     if (streaming_enabled)
     {
         openbci_data_buffer[openbci_data_buffer_tail].header = 0xA0;
@@ -449,3 +449,4 @@ void invalid_request()
     Serial.println("IN invalid_request\n");
     web_server.send(404, "text/plain", "Invalid Request!");
 }
+
